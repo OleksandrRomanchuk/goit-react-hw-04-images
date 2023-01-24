@@ -1,7 +1,8 @@
 import { fetchImages } from 'API/API';
+import { scrollingAfterMoreLoad } from 'helpers/autoScroll';
 
 //========== components ==========
-import { Component } from 'react';
+import { useState, useEffect } from 'react';
 import { Searchbar } from 'components/Searchbar/Searchbar';
 import { ImageGallery } from 'components/ImageGallery/ImageGallery';
 import { Notification } from 'components/Notification/Notification';
@@ -12,55 +13,54 @@ import { Modal } from 'components/Modal/Modal';
 //========== styles ==========
 import css from './App.module.css';
 
-class App extends Component {
-  state = {
-    photos: [],
-    page: 1,
-    query: null,
-    isModal: false,
-    largeImage: null,
-    isLoading: false,
-    notifyMessage: 'Enter a search query to get a photo.'
-  };
+export function App() {
+  const [photos, setPhotos] = useState([]);
+  const [page, setPage] = useState(1);
+  const [query, setQuery] = useState('');
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [notifyMessage, setNotifyMessage] = useState('Enter a search query to get a photo.');
+  const [largeImage, setLargeImage] = useState(null);
 
-  async componentDidUpdate(_, prevState) {
-    if (prevState.query !== this.state.query || prevState.page !== this.state.page) {
-      this.setState({ isLoading: true, notifyMessage: '' });
+  useEffect(() => {
+    if (!query) return;
 
-      try {
-        const page = this.state.page;
-        const query = this.state.query;;
+    setIsLoading(true);
+    setNotifyMessage('');
 
-        const { hits } = await fetchImages(query, page);
+    fetchImages(query, page)
+      .then(({ hits }) => {
+        if (hits.length === 0) {
+          setNotifyMessage('No photos were found for your request.');
+          return;
+        };
+
         const photosInfo = hits.map(({ id, largeImageURL, webformatURL, tags }) => {
           return { id, largeImageURL, webformatURL, tags }
         });
 
-        if (hits.length === 0) {
-          this.setState({ notifyMessage: 'No photos were found for your request.' });
-        }
-        
-        this.setState(prevState => ({ photos: [...prevState.photos, ...photosInfo], isLoading: false}));
-      } catch (error) {
-        console.log(error);
-      };
-    };
-    document.body.scrollIntoView({behavior: "smooth", block: "end"});
+        setPhotos(state => [...state, ...photosInfo]);
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
+  }, [query, page]);
+
+  useEffect(() => {
+    if (photos.length <= 12) return;
+
+    scrollingAfterMoreLoad();
+  }, [photos]);
+
+  const setQueryWord = (string) => {
+    if (string === query) return;
+
+    setPhotos('');
+    setPage(1);
+    setQuery(string);
   };
 
-  setNextPage = () => {
-    this.setState(prevState => ({ page: prevState.page + 1 }));
-  };
-
-  setQuery = (string) => {
-    this.setState({ photos: [], query: string, page: 1 });
-  };
-
-  toggleModal = () => {
-    this.setState(prevState => ({ isModal: !prevState.isModal }));
-  };
-
-  setChosenImage = (event) => {
+  const setChosenImage = (event) => {
     event.preventDefault();
     
     const modalImageData = {
@@ -68,50 +68,40 @@ class App extends Component {
       alt: event.currentTarget.dataset.alt,
     };
 
-    this.setState({ largeImage: modalImageData })
-    this.toggleModal();
+    setLargeImage(modalImageData)
+    setIsModalOpen(!isModalOpen);
   };
 
-  render() {
-    const photos = this.state.photos;
-    const largeImageData = this.state.largeImage;
-    const loading = this.state.isLoading;
+  return <div className={css.App}>
+    <Searchbar onSubmit={setQueryWord} />
+    {photos[0] ? <>
+      <ImageGallery
+        items={photos}
+        modalOpen={() => setIsModalOpen(!isModalOpen)}
+        getImageData={setChosenImage} />
+      {!isLoading && <Button
+        type="button"
+        label="Load more"
+        changePageNumber={() => setPage(state => state + 1)} />}
+    </> : <Notification message={notifyMessage} />}
+    {isLoading && <div className={css.Loader}>
+      <ThreeDots
+        height="80"
+        width="80"
+        radius="9"
+        color="#4fa94d"
+        ariaLabel="three-dots-loading"
+        visible={true}
+      />
+    </div>}
 
-    return (
-      <div className={css.App}>
-        <Searchbar onSubmit={this.setQuery} />
-        {photos[0] ? <>
-          <ImageGallery
-            items={photos}
-            modalOpen={this.toggleModal}
-            getImageData={this.setChosenImage} />
-          {!loading && <Button
-            type="button"
-            label="Load more"
-            changePageNumber={this.setNextPage} />}
-        </> : <Notification message={this.state.notifyMessage} />}
-        {loading && <div className={css.Loader}>
-          <ThreeDots
-            height="80"
-            width="80"
-            radius="9"
-            color="#4fa94d"
-            ariaLabel="three-dots-loading"
-            visible={true}
-          />
-        </div>}
-
-        {this.state.isModal
-          && <Modal
-            modalToggle={this.toggleModal}>
-            <img
-              src={largeImageData.url}
-              alt={largeImageData.alt} />
-          </Modal>}
-      </div>
-    );
-  };
+    {isModalOpen
+      && <Modal
+        modalToggle={() => setIsModalOpen(!isModalOpen)}>
+        <img
+          src={largeImage.url}
+          alt={largeImage.alt} />
+      </Modal>}
+  </div>;
 };
-
-export { App };
   
