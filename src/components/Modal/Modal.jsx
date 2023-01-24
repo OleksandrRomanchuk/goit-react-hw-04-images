@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import { createPortal } from 'react-dom';
+import { disableScroll, enableScroll } from 'helpers/preventScroll';
 
 //========== components ==========
 import { useEffect } from 'react';
@@ -17,9 +18,11 @@ export function Modal({ modalToggle, children }) {
             };
         };
         
+        disableScroll();
         window.addEventListener('keydown', onKeyDown);
 
         return () => {
+            enableScroll();
             window.removeEventListener('keydown', onKeyDown);
         };
     }, [modalToggle]);
