@@ -1,33 +1,35 @@
 import PropTypes from 'prop-types';
 
 //========== components ==========
-import { Component } from 'react';
+import { useState } from 'react';
 import { FcSearch } from "react-icons/fc";
 
 //========== styles ==========
 import css from './Searchbar.module.css';
 
-class Searchbar extends Component {
-    static propTypes = {
-            onSubmit: PropTypes.func.isRequired,
-    }
+export function Searchbar({ onSubmit }) {
+    const [query, setQuery] = useState('');
 
-    onFormSubmit = (event) => {
+    const onInputChange = (event) => { 
+        const value = event.target.value;
+
+        setQuery(value);
+    };
+
+    const onFormSubmit = (event) => {
         event.preventDefault();
 
-        const query = event.target.elements.query.value;
-
-        this.props.onSubmit(query);
+        onSubmit(query);
     }
 
-    render() {
-        return <header className={css.Searchbar}>
-        <form className={css.SearchForm} onSubmit={this.onFormSubmit}>
-                <button type="submit" className={css.SearchFormBtn}>
-                    <FcSearch style={{fontSize: "24px"}} />
+    return <header className={css.Searchbar}>
+        <form className={css.SearchForm} onSubmit={onFormSubmit}>
+            <button type="submit" className={css.SearchFormBtn}>
+                <FcSearch style={{ fontSize: "24px" }} />
                 <span className={css.SearchFormBtnLabel}>Search</span>
             </button>
             <input
+                onChange={onInputChange}
                 className={css.SearchFormInput}
                 name="query"
                 type="text"
@@ -37,7 +39,9 @@ class Searchbar extends Component {
             />
         </form>
     </header>;
-    }
 };
 
-export { Searchbar };
+Searchbar.propTypes = {
+    onSubmit: PropTypes.func.isRequired,
+}
+
