@@ -20,12 +20,6 @@ body {
   background-color: #fff;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-
-  height: 100%;
-}
-
-body.scroll-hidden {
-  overflow: hidden;
 }
 
 img {
@@ -34,9 +28,9 @@ img {
   height: auto;
 }
 
-.disabled-scroll {
-  overflow: hidden;
+.disableScroll {
   position: fixed;
+
   width: 100%;
-  height: 100%;
+  height: 100vh;
 }
